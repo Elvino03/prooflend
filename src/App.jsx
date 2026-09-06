@@ -40,7 +40,7 @@ function App() {
   const [wallet, setWallet] = useState({ status: 'idle', address: '', error: '' })
   const [flow, setFlow] = useState(() => {
     const txHash = localStorage.getItem('prooflend-source-tx') || ''
-    return { stage: txHash ? 'source-confirmed' : 'ready', txHash, proof: null, destinationTx: '', error: '' }
+    return { stage: txHash ? 'source-confirmed' : 'ready', txHash, proof: null, destinationTx: '', error: '', progress: '' }
   })
   const showDeployment = new URLSearchParams(window.location.search).get('deploy') === '1'
 
@@ -83,7 +83,7 @@ function App() {
       const receipt = await transaction.wait()
       if (receipt.status !== 1) throw new Error('The Sepolia transaction did not succeed.')
       localStorage.setItem('prooflend-source-tx', transaction.hash)
-      setFlow({ stage: 'source-confirmed', txHash: transaction.hash, proof: null, destinationTx: '', error: '' })
+      setFlow({ stage: 'source-confirmed', txHash: transaction.hash, proof: null, destinationTx: '', error: '', progress: '' })
     } catch (error) {
       setFlow((current) => ({ ...current, stage: current.txHash ? 'source-confirmed' : 'ready', error: friendlyError(error) }))
     }
@@ -92,10 +92,21 @@ function App() {
   const generateProof = async () => {
     try {
       setFlow((current) => ({ ...current, stage: 'building-proof', error: '' }))
-      const response = await fetch(`/api/proof?txHash=${encodeURIComponent(flow.txHash)}`)
-      const result = await response.json()
-      if (!response.ok || !result.data) throw new Error(result.error || 'Proof generation failed.')
-      setFlow((current) => ({ ...current, stage: 'proof-ready', proof: result.data }))
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        const response = await fetch(`/api/proof?txHash=${encodeURIComponent(flow.txHash)}`)
+        const result = await response.json()
+        if (!response.ok && response.status !== 202) throw new Error(result.error || 'Proof generation failed.')
+        if (result.data) {
+          setFlow((current) => ({ ...current, stage: 'proof-ready', proof: result.data, progress: '' }))
+          return
+        }
+        const progress = result.targetHeight
+          ? `Attested through ${Number(result.latestHeight).toLocaleString()} · waiting for ${Number(result.targetHeight).toLocaleString()}`
+          : 'Waiting for the Sepolia transaction to be mined…'
+        setFlow((current) => ({ ...current, progress }))
+        await new Promise((resolve) => setTimeout(resolve, 15_000))
+      }
+      throw new Error('Attestation did not arrive within 20 minutes. You can safely try again.')
     } catch (error) {
       setFlow((current) => ({ ...current, stage: 'source-confirmed', error: friendlyError(error) }))
     }
@@ -129,7 +140,7 @@ function App() {
 
   const resetFlow = () => {
     localStorage.removeItem('prooflend-source-tx')
-    setFlow({ stage: 'ready', txHash: '', proof: null, destinationTx: '', error: '' })
+    setFlow({ stage: 'ready', txHash: '', proof: null, destinationTx: '', error: '', progress: '' })
   }
 
   const shortAddress = wallet.address ? `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''
@@ -159,7 +170,7 @@ function App() {
         <div className="signal-row"><div><p className="signal-label">Cross-chain signal</p><p className="signal-value">ProofLend eligibility request</p></div><span className="signal-chain">Ethereum Sepolia</span></div>
         <div className="signal-row"><div><p className="signal-label">Verification result</p><p className="signal-value">{flow.stage === 'verified' ? 'Eligible · proof recorded' : 'Pending Attestcoin proof'}</p></div><span className="signal-chain">Creditcoin</span></div>
         <button className="wide-button wide-button-active" onClick={action.run} disabled={isBusy}>{action.label} <span aria-hidden="true">→</span></button>
-        {flow.stage === 'building-proof' && <p className="card-footnote" role="status">Attestcoin is waiting for the Sepolia block to be attested. This commonly takes about 8 minutes; keep this tab open.</p>}
+        {flow.stage === 'building-proof' && <p className="card-footnote" role="status">{flow.progress || 'Checking Attestcoin attestation status…'} This commonly takes about 8 minutes; keep this tab open.</p>}
         {flow.txHash && <a className="transaction-link" href={`${deployments.sepolia.explorer}/tx/${flow.txHash}`} target="_blank" rel="noreferrer">View Sepolia request ↗</a>}
         {flow.destinationTx && <a className="transaction-link" href={`${deployments.creditcoinTestnet.explorer}/tx/${flow.destinationTx}`} target="_blank" rel="noreferrer">View Creditcoin proof ↗</a>}
         {flow.error && <p className="flow-error" role="alert">{flow.error}</p>}{!flow.txHash && <p className="card-footnote">Testnet only. The first Rabby prompt creates the Sepolia signal.</p>}

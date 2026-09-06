@@ -10,7 +10,7 @@ Cross-chain lending applications often depend on a trusted indexer or backend cl
 
 1. The connected user calls `requestEligibility(bytes32)` on `ProofLendSignal` on Ethereum Sepolia.
 2. The contract emits `EligibilityRequested(address,uint256,bytes32)`.
-3. The local proof service uses the official `@gluwa/usc-sdk` and Attestcoin Proof Builder to obtain the transaction proof.
+3. The proof API uses the official `@gluwa/usc-sdk` and Attestcoin Proof Builder to obtain the transaction proof.
 4. Rabby submits that proof to `ProofLendEligibility` on Creditcoin Testnet.
 5. The destination contract calls the native verifier precompile, checks that the event came from the configured source contract, decodes the applicant and request ID with the official `EvmV1Decoder`, and stores the result.
 
@@ -42,6 +42,10 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:5173/`. Proof generation commonly takes several minutes while the Sepolia block is attested on Creditcoin.
+
+## Deploy
+
+The repository includes a Vercel Function at `api/proof.js`. Import the GitHub repository into Vercel with the Vite preset and default build settings; no secrets or environment variables are required.
 
 ## Validate
 
