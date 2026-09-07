@@ -306,7 +306,7 @@ function App() {
         ? { label: 'Submit proof on Creditcoin', run: submitProof }
         : flow.stage === 'verified'
           ? { label: 'Start another verification', run: resetFlow }
-          : { label: flow.stage === 'requesting' ? 'Confirm in Rabby…' : flow.stage === 'mining-source' ? 'Confirming on Sepolia…' : flow.stage === 'building-proof' ? 'Waiting for attestation…' : flow.stage === 'submitting-proof' ? 'Confirm in Rabby…' : flow.stage === 'mining-proof' ? 'Confirming on Creditcoin…' : 'Request verification', run: requestSignal }
+          : { label: flow.stage === 'requesting' ? 'Confirm in wallet…' : flow.stage === 'mining-source' ? 'Confirming on Sepolia…' : flow.stage === 'building-proof' ? 'Waiting for attestation…' : flow.stage === 'submitting-proof' ? 'Confirm in wallet…' : flow.stage === 'mining-proof' ? 'Confirming on Creditcoin…' : 'Request verification', run: requestSignal }
 
   return (
     <main>
@@ -357,7 +357,7 @@ function App() {
         {flow.stage === 'building-proof' && <p className="card-footnote" role="status">{flow.progress || 'Checking Attestcoin attestation status…'} This commonly takes about 8 minutes; keep this tab open.</p>}
         {flow.txHash && <a className="transaction-link" href={`${deployments.sepolia.explorer}/tx/${flow.txHash}`} target="_blank" rel="noreferrer">View Sepolia request ↗</a>}
         {flow.destinationTx && <a className="transaction-link" href={`${deployments.creditcoinTestnet.explorer}/tx/${flow.destinationTx}`} target="_blank" rel="noreferrer">View Creditcoin proof ↗</a>}
-        {flow.error && <p className="flow-error" role="alert">{flow.error}</p>}{!flow.txHash && <p className="card-footnote">Testnet only. The first Rabby prompt creates the Sepolia signal.</p>}
+        {flow.error && <p className="flow-error" role="alert">{flow.error}</p>}{!flow.txHash && <p className="card-footnote">Testnet only. The first wallet prompt creates the Sepolia signal.</p>}
       </section>
       {showDeployment && <DeploymentPanel account={wallet.address} />}
       <section className="steps" id="how-it-works"><div className="section-intro"><p className="eyebrow">How it works</p><h2>Cross-chain data that users can inspect.</h2></div><div className="step-grid">{steps.map(([number, title, copy]) => <article className="step" key={number}><span className="step-number">{number}</span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>

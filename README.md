@@ -11,7 +11,7 @@ Cross-chain lending applications often depend on a trusted indexer or backend cl
 1. The connected user calls `requestEligibility(bytes32)` on `ProofLendSignal` on Ethereum Sepolia.
 2. The contract emits `EligibilityRequested(address,uint256,bytes32)`.
 3. The proof API uses the official `@gluwa/usc-sdk` and Attestcoin Proof Builder to obtain the transaction proof.
-4. Rabby submits that proof to `ProofLendEligibility` on Creditcoin Testnet.
+4. The connected wallet submits that proof to `ProofLendEligibility` on Creditcoin Testnet.
 5. The destination contract calls the native verifier precompile, checks that the event came from the configured source contract, decodes the applicant and request ID with the official `EvmV1Decoder`, and stores the result.
 
 The wallet signs both testnet transactions. ProofLend never requests or stores a seed phrase or private key.
@@ -33,7 +33,7 @@ The addresses match because the same deployer used the same nonce on both networ
 
 ## Run locally
 
-Requirements: Node.js 24+, npm, and a Rabby test wallet funded with Sepolia ETH and tCTC.
+Requirements: Node.js 24+, npm, and an EVM-compatible test wallet funded with Sepolia ETH and tCTC.
 
 ```bash
 npm install

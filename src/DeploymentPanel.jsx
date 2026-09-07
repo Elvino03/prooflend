@@ -50,15 +50,15 @@ function DeploymentPanel({ account }) {
 
   const deploy = async (network, data, onMined) => {
     if (!window.ethereum || !account) {
-      setStatus('Connect your Rabby test account first.')
+      setStatus('Connect your test wallet first.')
       return
     }
     try {
       setBusy(true)
       assertHexData(data)
-      setStatus(`Switching Rabby to ${network.name}…`)
+      setStatus(`Switching your wallet to ${network.name}…`)
       await switchChain(window.ethereum, network)
-      setStatus(`Review and approve the ${network.name} deployment in Rabby.`)
+      setStatus(`Review and approve the ${network.name} deployment in your wallet.`)
       const hash = await window.ethereum.request({
         method: 'eth_sendTransaction',
         params: [{ from: account, data }],
@@ -68,7 +68,7 @@ function DeploymentPanel({ account }) {
       if (receipt.status !== '0x1') throw new Error('The deployment transaction failed.')
       onMined(receipt.contractAddress)
     } catch (error) {
-      setStatus(error.code === 4001 ? 'Deployment cancelled in Rabby.' : error.message)
+      setStatus(error.code === 4001 ? 'Deployment cancelled in your wallet.' : error.message)
     } finally {
       setBusy(false)
     }
@@ -93,7 +93,7 @@ function DeploymentPanel({ account }) {
     <section className="deployment-panel" aria-labelledby="deployment-title">
       <p className="eyebrow">Private setup screen</p>
       <h2 id="deployment-title">Deploy ProofLend contracts</h2>
-      <p className="deployment-copy">Only use your funded test account. Each button creates one testnet transaction that Rabby will show before anything is sent.</p>
+      <p className="deployment-copy">Only use your funded test account. Each button creates one testnet transaction for you to review in your wallet before anything is sent.</p>
       <div className="deployment-step">
         <div><strong>1. Ethereum Sepolia</strong><span>{signalAddress || 'Not deployed'}</span></div>
         <button className="primary-button" disabled={busy || !account || signalAddress} onClick={deploySignal}>{signalAddress ? 'Deployed' : 'Deploy signal contract'}</button>
