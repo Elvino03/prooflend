@@ -38,6 +38,7 @@ async function switchChain(provider, chainId, network) {
 
 function App() {
   const [wallet, setWallet] = useState({ status: 'idle', address: '', error: '' })
+  const [chainId, setChainId] = useState('')
   const [flow, setFlow] = useState(() => {
     const txHash = localStorage.getItem('prooflend-source-tx') || ''
     return { stage: txHash ? 'source-confirmed' : 'ready', txHash, proof: null, destinationTx: '', error: '', progress: '' }
@@ -51,8 +52,13 @@ function App() {
       ? { status: 'connected', address: accounts[0], error: '' }
       : { status: 'idle', address: '', error: '' })
     provider.request({ method: 'eth_accounts' }).then(updateAccount).catch(() => {})
+    provider.request({ method: 'eth_chainId' }).then(setChainId).catch(() => {})
     provider.on?.('accountsChanged', updateAccount)
-    return () => provider.removeListener?.('accountsChanged', updateAccount)
+    provider.on?.('chainChanged', setChainId)
+    return () => {
+      provider.removeListener?.('accountsChanged', updateAccount)
+      provider.removeListener?.('chainChanged', setChainId)
+    }
   }, [])
 
   const connectWallet = async () => {
@@ -144,6 +150,14 @@ function App() {
   }
 
   const shortAddress = wallet.address ? `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''
+  const currentNetwork = chainId === SEPOLIA_ID
+    ? 'Ethereum Sepolia'
+    : chainId === CREDITCOIN_ID
+      ? 'Creditcoin Testnet'
+      : chainId
+        ? 'Unsupported network'
+        : 'Network unavailable'
+  const supportedNetwork = chainId === SEPOLIA_ID || chainId === CREDITCOIN_ID
   const isBusy = ['requesting', 'mining-source', 'building-proof', 'submitting-proof', 'mining-proof'].includes(flow.stage)
   const status = flow.stage === 'verified' ? 'Verified' : flow.stage === 'proof-ready' ? 'Proof ready' : flow.txHash ? 'In progress' : 'Awaiting proof'
   const action = !wallet.address
@@ -161,7 +175,7 @@ function App() {
       <nav className="nav" aria-label="Main navigation">
         <a className="brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
         <div className="nav-actions">
-          <span className="network-pill">Sepolia → Creditcoin</span>
+          <span className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`}><span aria-hidden="true" />{currentNetwork}</span>
           <button className="nav-wallet" onClick={connectWallet} disabled={wallet.status === 'connecting'}>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}</button>
         </div>
       </nav>
