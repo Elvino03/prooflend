@@ -30,6 +30,10 @@ const sepoliaNetwork = {
   blockExplorerUrls: [deployments.sepolia.explorer],
 }
 
+function ChevronDown({ open = false }) {
+  return <svg className={`menu-chevron ${open ? 'menu-chevron-open' : ''}`} viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+}
+
 function friendlyError(error) {
   if (error?.code === 4001 || error?.code === 'ACTION_REJECTED') return 'The request was cancelled in Rabby.'
   return error?.shortMessage || error?.reason || error?.message || 'Something went wrong.'
@@ -256,7 +260,7 @@ function App() {
             <button className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`} onClick={() => { setNetworkMenuOpen((open) => !open); setWalletMenuOpen(false) }} disabled={!chainId || networkStatus === 'switching'} aria-haspopup="menu" aria-expanded={networkMenuOpen}>
               <span className="network-dot" aria-hidden="true" />
               <span>{networkStatus === 'switching' ? 'Switching…' : currentNetwork}</span>
-              <span className={`menu-chevron ${networkMenuOpen ? 'menu-chevron-open' : ''}`} aria-hidden="true">⌄</span>
+              <ChevronDown open={networkMenuOpen} />
             </button>
             {networkMenuOpen && <div className="nav-popover network-menu" role="menu" aria-label="Choose wallet network">
               <p className="popover-label">Switch network</p>
@@ -265,7 +269,7 @@ function App() {
             </div>}
           </div>
           <div className="nav-menu-wrap">
-            <button className={`nav-wallet ${wallet.status === 'connected' ? 'nav-wallet-connected' : ''}`} onClick={wallet.status === 'connected' ? () => { setWalletMenuOpen((open) => !open); setNetworkMenuOpen(false) } : connectWallet} disabled={wallet.status === 'connecting'} aria-haspopup={wallet.status === 'connected' ? 'menu' : undefined} aria-expanded={wallet.status === 'connected' ? walletMenuOpen : undefined}><span className="wallet-symbol" aria-hidden="true">◇</span>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}{wallet.status === 'connected' && <span className={`menu-chevron ${walletMenuOpen ? 'menu-chevron-open' : ''}`} aria-hidden="true">⌄</span>}</button>
+            <button className={`nav-wallet ${wallet.status === 'connected' ? 'nav-wallet-connected' : ''}`} onClick={wallet.status === 'connected' ? () => { setWalletMenuOpen((open) => !open); setNetworkMenuOpen(false) } : connectWallet} disabled={wallet.status === 'connecting'} aria-haspopup={wallet.status === 'connected' ? 'menu' : undefined} aria-expanded={wallet.status === 'connected' ? walletMenuOpen : undefined}><span className="wallet-symbol" aria-hidden="true">◇</span>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}{wallet.status === 'connected' && <ChevronDown open={walletMenuOpen} />}</button>
             {walletMenuOpen && wallet.address && <div className="nav-popover wallet-menu" role="menu" aria-label="Wallet options">
               <p className="popover-label">Connected wallet</p>
               <p className="wallet-full-address">{wallet.address}</p>
