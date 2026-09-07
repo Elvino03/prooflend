@@ -22,6 +22,14 @@ const creditcoinNetwork = {
   blockExplorerUrls: [deployments.creditcoinTestnet.explorer],
 }
 
+const sepoliaNetwork = {
+  chainId: SEPOLIA_ID,
+  chainName: 'Ethereum Sepolia',
+  nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+  rpcUrls: ['https://ethereum-sepolia-rpc.publicnode.com'],
+  blockExplorerUrls: [deployments.sepolia.explorer],
+}
+
 function friendlyError(error) {
   if (error?.code === 4001 || error?.code === 'ACTION_REJECTED') return 'The request was cancelled in Rabby.'
   return error?.shortMessage || error?.reason || error?.message || 'Something went wrong.'
@@ -39,6 +47,8 @@ async function switchChain(provider, chainId, network) {
 function App() {
   const [wallet, setWallet] = useState({ status: 'idle', address: '', error: '' })
   const [chainId, setChainId] = useState('')
+  const [networkStatus, setNetworkStatus] = useState('idle')
+  const [networkError, setNetworkError] = useState('')
   const [flow, setFlow] = useState(() => {
     const txHash = localStorage.getItem('prooflend-source-tx') || ''
     return { stage: txHash ? 'source-confirmed' : 'ready', txHash, proof: null, destinationTx: '', error: '', progress: '' }
@@ -73,6 +83,22 @@ function App() {
       setWallet({ status: 'connected', address: accounts[0], error: '' })
     } catch (error) {
       setWallet({ status: 'error', address: '', error: friendlyError(error) })
+    }
+  }
+
+  const changeNetwork = async (event) => {
+    const targetChainId = event.target.value
+    if (!targetChainId || !window.ethereum) return
+    try {
+      setNetworkStatus('switching')
+      setNetworkError('')
+      const network = targetChainId === SEPOLIA_ID ? sepoliaNetwork : creditcoinNetwork
+      await switchChain(window.ethereum, targetChainId, network)
+      setChainId(await window.ethereum.request({ method: 'eth_chainId' }))
+    } catch (error) {
+      setNetworkError(friendlyError(error))
+    } finally {
+      setNetworkStatus('idle')
     }
   }
 
@@ -175,7 +201,15 @@ function App() {
       <nav className="nav" aria-label="Main navigation">
         <a className="brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
         <div className="nav-actions">
-          <span className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`}><span aria-hidden="true" />{currentNetwork}</span>
+          <label className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`}>
+            <span className="network-dot" aria-hidden="true" />
+            <span className="visually-hidden">Current network</span>
+            <select className="network-select" value={networkStatus === 'switching' ? '' : supportedNetwork ? chainId : ''} onChange={changeNetwork} disabled={!chainId || networkStatus === 'switching'} aria-label="Change wallet network">
+              <option value="" disabled>{networkStatus === 'switching' ? 'Switching…' : currentNetwork}</option>
+              <option value={SEPOLIA_ID}>Ethereum Sepolia</option>
+              <option value={CREDITCOIN_ID}>Creditcoin Testnet</option>
+            </select>
+          </label>
           <button className="nav-wallet" onClick={connectWallet} disabled={wallet.status === 'connecting'}>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}</button>
         </div>
       </nav>
@@ -183,7 +217,7 @@ function App() {
         <p className="eyebrow">Cross-chain lending, made verifiable</p><h1>Prove your on-chain activity. Unlock a fairer loan decision.</h1>
         <p className="hero-copy">ProofLend uses Attestcoin Protocol to verify a signal from another chain, then makes an explainable lending decision on Creditcoin.</p>
         <div className="hero-actions"><a className="primary-button" href="#verify">Try ProofLend <span aria-hidden="true">↓</span></a><a className="text-button" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a></div>
-        {wallet.status === 'connected' && <p className="connection-note" role="status">Rabby connected. Transactions always require your approval.</p>}{wallet.status === 'error' && <p className="connection-error" role="alert">{wallet.error}</p>}
+        {wallet.status === 'connected' && <p className="connection-note" role="status">Rabby connected. Transactions always require your approval.</p>}{wallet.status === 'error' && <p className="connection-error" role="alert">{wallet.error}</p>}{networkError && <p className="connection-error" role="alert">{networkError}</p>}
       </section>
       <section className="decision-card" id="verify" aria-label="Eligibility verification">
         <div className="card-heading"><div><p className="card-label">Eligibility request</p><h2>{flow.stage === 'verified' ? 'Activity verified' : 'Verify your signal'}</h2></div><span className={`status ${flow.stage === 'verified' ? 'status-success' : 'status-pending'}`}>{status}</span></div>
