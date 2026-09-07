@@ -38,6 +38,10 @@ function CopyIcon() {
   return <svg className="menu-action-icon" viewBox="0 0 18 18" aria-hidden="true"><rect x="6.25" y="5.25" width="8" height="8" rx="1.5" /><path d="M11.5 5.25V4.5A1.5 1.5 0 0 0 10 3H4.5A1.5 1.5 0 0 0 3 4.5V10A1.5 1.5 0 0 0 4.5 11.5h1.75" /></svg>
 }
 
+function PowerIcon() {
+  return <svg className="menu-action-icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.75v6" /><path d="M5.15 5.05a6 6 0 1 0 7.7 0" /></svg>
+}
+
 function friendlyError(error) {
   if (error?.code === 4001 || error?.code === 'ACTION_REJECTED') return 'The request was cancelled in Rabby.'
   return error?.shortMessage || error?.reason || error?.message || 'Something went wrong.'
@@ -278,7 +282,7 @@ function App() {
               <p className="popover-label">Connected wallet</p>
               <p className="wallet-full-address">{wallet.address}</p>
               <button className="wallet-menu-action" onClick={copyAddress} role="menuitem"><CopyIcon />{copyStatus === 'copied' ? 'Address copied' : copyStatus === 'error' ? 'Copy failed' : 'Copy address'}<span className="action-status">{copyStatus === 'copied' ? '✓' : ''}</span></button>
-              <button className="wallet-menu-action wallet-disconnect" onClick={disconnectWallet} role="menuitem"><span aria-hidden="true">↗</span>Disconnect from site</button>
+              <button className="wallet-menu-action wallet-disconnect" onClick={disconnectWallet} role="menuitem"><PowerIcon />Disconnect from site</button>
             </div>}
           </div>
         </div>
