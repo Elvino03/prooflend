@@ -282,7 +282,7 @@ function App() {
               <p className="popover-label">Connected wallet</p>
               <p className="wallet-full-address">{wallet.address}</p>
               <button className="wallet-menu-action" onClick={copyAddress} role="menuitem"><CopyIcon />{copyStatus === 'copied' ? 'Address copied' : copyStatus === 'error' ? 'Copy failed' : 'Copy address'}<span className="action-status">{copyStatus === 'copied' ? '✓' : ''}</span></button>
-              <button className="wallet-menu-action wallet-disconnect" onClick={disconnectWallet} role="menuitem"><PowerIcon />Disconnect from site</button>
+              <button className="wallet-menu-action wallet-disconnect" onClick={disconnectWallet} role="menuitem"><PowerIcon />Disconnect</button>
             </div>}
           </div>
         </div>
