@@ -5,6 +5,8 @@ const SOURCE_CHAIN_KEY = 1
 const PROOF_BUILDER_URL = 'https://prover.cc3-testnet.creditcoin.network'
 const CREDITCOIN_RPC_URL = 'https://rpc.cc3-testnet.creditcoin.network'
 const SEPOLIA_RPC_URL = 'https://ethereum-sepolia-rpc.publicnode.com'
+const SEPOLIA_NETWORK = { chainId: 11155111, name: 'sepolia' }
+const CREDITCOIN_NETWORK = { chainId: 102031, name: 'creditcoin-testnet' }
 
 function jsonSafe(value) {
   if (typeof value === 'bigint') return value.toString()
@@ -20,8 +22,12 @@ export async function getProofStatus(txHash) {
     return { status: 400, body: { error: 'A valid Sepolia transaction hash is required.' } }
   }
 
-  const sourceProvider = new JsonRpcProvider(SEPOLIA_RPC_URL)
-  const creditcoinProvider = new JsonRpcProvider(CREDITCOIN_RPC_URL)
+  const sourceProvider = new JsonRpcProvider(SEPOLIA_RPC_URL, SEPOLIA_NETWORK, {
+    staticNetwork: true,
+  })
+  const creditcoinProvider = new JsonRpcProvider(CREDITCOIN_RPC_URL, CREDITCOIN_NETWORK, {
+    staticNetwork: true,
+  })
   const transaction = await sourceProvider.getTransaction(txHash)
   if (!transaction) return { status: 404, body: { error: 'The Sepolia transaction was not found.' } }
   if (!transaction.blockNumber) return { status: 202, body: { pending: true, reason: 'mining' } }
