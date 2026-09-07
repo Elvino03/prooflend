@@ -1,5 +1,5 @@
 import { BrowserProvider, Contract, keccak256, toUtf8Bytes } from 'ethers'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import DeploymentPanel from './DeploymentPanel'
 import { deployments } from './config'
@@ -49,6 +49,10 @@ function App() {
   const [chainId, setChainId] = useState('')
   const [networkStatus, setNetworkStatus] = useState('idle')
   const [networkError, setNetworkError] = useState('')
+  const [networkMenuOpen, setNetworkMenuOpen] = useState(false)
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false)
+  const [copyStatus, setCopyStatus] = useState('idle')
+  const navActionsRef = useRef(null)
   const [flow, setFlow] = useState(() => {
     const txHash = localStorage.getItem('prooflend-source-tx') || ''
     return { stage: txHash ? 'source-confirmed' : 'ready', txHash, proof: null, destinationTx: '', error: '', progress: '' }
@@ -58,9 +62,12 @@ function App() {
   useEffect(() => {
     const provider = window.ethereum
     if (!provider) return undefined
-    const updateAccount = (accounts) => setWallet(accounts[0]
-      ? { status: 'connected', address: accounts[0], error: '' }
-      : { status: 'idle', address: '', error: '' })
+    const updateAccount = (accounts) => {
+      const disconnectedFromSite = sessionStorage.getItem('prooflend-wallet-disconnected') === '1'
+      setWallet(accounts[0] && !disconnectedFromSite
+        ? { status: 'connected', address: accounts[0], error: '' }
+        : { status: 'idle', address: '', error: '' })
+    }
     provider.request({ method: 'eth_accounts' }).then(updateAccount).catch(() => {})
     provider.request({ method: 'eth_chainId' }).then(setChainId).catch(() => {})
     provider.on?.('accountsChanged', updateAccount)
@@ -68,6 +75,27 @@ function App() {
     return () => {
       provider.removeListener?.('accountsChanged', updateAccount)
       provider.removeListener?.('chainChanged', setChainId)
+    }
+  }, [])
+
+  useEffect(() => {
+    const closeMenus = (event) => {
+      if (!navActionsRef.current?.contains(event.target)) {
+        setNetworkMenuOpen(false)
+        setWalletMenuOpen(false)
+      }
+    }
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') {
+        setNetworkMenuOpen(false)
+        setWalletMenuOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', closeMenus)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeMenus)
+      document.removeEventListener('keydown', closeOnEscape)
     }
   }, [])
 
@@ -79,6 +107,7 @@ function App() {
     }
     try {
       setWallet({ status: 'connecting', address: '', error: '' })
+      sessionStorage.removeItem('prooflend-wallet-disconnected')
       const accounts = await provider.request({ method: 'eth_requestAccounts' })
       setWallet({ status: 'connected', address: accounts[0], error: '' })
     } catch (error) {
@@ -86,11 +115,11 @@ function App() {
     }
   }
 
-  const changeNetwork = async (event) => {
-    const targetChainId = event.target.value
+  const changeNetwork = async (targetChainId) => {
     if (!targetChainId || !window.ethereum) return
     try {
       setNetworkStatus('switching')
+      setNetworkMenuOpen(false)
       setNetworkError('')
       const network = targetChainId === SEPOLIA_ID ? sepoliaNetwork : creditcoinNetwork
       await switchChain(window.ethereum, targetChainId, network)
@@ -99,6 +128,28 @@ function App() {
       setNetworkError(friendlyError(error))
     } finally {
       setNetworkStatus('idle')
+    }
+  }
+
+  const copyAddress = async () => {
+    if (!wallet.address) return
+    try {
+      await navigator.clipboard.writeText(wallet.address)
+      setCopyStatus('copied')
+      window.setTimeout(() => setCopyStatus('idle'), 1800)
+    } catch {
+      setCopyStatus('error')
+    }
+  }
+
+  const disconnectWallet = async () => {
+    sessionStorage.setItem('prooflend-wallet-disconnected', '1')
+    setWalletMenuOpen(false)
+    setWallet({ status: 'idle', address: '', error: '' })
+    try {
+      await window.ethereum?.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] })
+    } catch {
+      // Some wallets do not expose permission revocation; local disconnect still succeeds.
     }
   }
 
@@ -200,17 +251,28 @@ function App() {
     <main>
       <nav className="nav" aria-label="Main navigation">
         <a className="brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
-        <div className="nav-actions">
-          <label className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`}>
-            <span className="network-dot" aria-hidden="true" />
-            <span className="visually-hidden">Current network</span>
-            <select className="network-select" value={networkStatus === 'switching' ? '' : supportedNetwork ? chainId : ''} onChange={changeNetwork} disabled={!chainId || networkStatus === 'switching'} aria-label="Change wallet network">
-              <option value="" disabled>{networkStatus === 'switching' ? 'Switching…' : currentNetwork}</option>
-              <option value={SEPOLIA_ID}>Ethereum Sepolia</option>
-              <option value={CREDITCOIN_ID}>Creditcoin Testnet</option>
-            </select>
-          </label>
-          <button className="nav-wallet" onClick={connectWallet} disabled={wallet.status === 'connecting'}>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}</button>
+        <div className="nav-actions" ref={navActionsRef}>
+          <div className="nav-menu-wrap">
+            <button className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`} onClick={() => { setNetworkMenuOpen((open) => !open); setWalletMenuOpen(false) }} disabled={!chainId || networkStatus === 'switching'} aria-haspopup="menu" aria-expanded={networkMenuOpen}>
+              <span className="network-dot" aria-hidden="true" />
+              <span>{networkStatus === 'switching' ? 'Switching…' : currentNetwork}</span>
+              <span className={`menu-chevron ${networkMenuOpen ? 'menu-chevron-open' : ''}`} aria-hidden="true">⌄</span>
+            </button>
+            {networkMenuOpen && <div className="nav-popover network-menu" role="menu" aria-label="Choose wallet network">
+              <p className="popover-label">Switch network</p>
+              <button className={chainId === SEPOLIA_ID ? 'menu-option menu-option-active' : 'menu-option'} onClick={() => changeNetwork(SEPOLIA_ID)} role="menuitem"><span className="chain-icon chain-icon-sepolia">S</span><span><strong>Ethereum Sepolia</strong><small>Source signal</small></span><span className="menu-check">{chainId === SEPOLIA_ID ? '✓' : ''}</span></button>
+              <button className={chainId === CREDITCOIN_ID ? 'menu-option menu-option-active' : 'menu-option'} onClick={() => changeNetwork(CREDITCOIN_ID)} role="menuitem"><span className="chain-icon chain-icon-creditcoin">C</span><span><strong>Creditcoin Testnet</strong><small>Proof destination</small></span><span className="menu-check">{chainId === CREDITCOIN_ID ? '✓' : ''}</span></button>
+            </div>}
+          </div>
+          <div className="nav-menu-wrap">
+            <button className={`nav-wallet ${wallet.status === 'connected' ? 'nav-wallet-connected' : ''}`} onClick={wallet.status === 'connected' ? () => { setWalletMenuOpen((open) => !open); setNetworkMenuOpen(false) } : connectWallet} disabled={wallet.status === 'connecting'} aria-haspopup={wallet.status === 'connected' ? 'menu' : undefined} aria-expanded={wallet.status === 'connected' ? walletMenuOpen : undefined}><span className="wallet-symbol" aria-hidden="true">◇</span>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}{wallet.status === 'connected' && <span className={`menu-chevron ${walletMenuOpen ? 'menu-chevron-open' : ''}`} aria-hidden="true">⌄</span>}</button>
+            {walletMenuOpen && wallet.address && <div className="nav-popover wallet-menu" role="menu" aria-label="Wallet options">
+              <p className="popover-label">Connected wallet</p>
+              <p className="wallet-full-address">{wallet.address}</p>
+              <button className="wallet-menu-action" onClick={copyAddress} role="menuitem"><span aria-hidden="true">▣</span>{copyStatus === 'copied' ? 'Address copied' : copyStatus === 'error' ? 'Copy failed' : 'Copy address'}<span className="action-status">{copyStatus === 'copied' ? '✓' : ''}</span></button>
+              <button className="wallet-menu-action wallet-disconnect" onClick={disconnectWallet} role="menuitem"><span aria-hidden="true">↗</span>Disconnect from site</button>
+            </div>}
+          </div>
         </div>
       </nav>
       <section className="hero" id="top">
