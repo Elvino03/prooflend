@@ -177,7 +177,32 @@ function App() {
       </section>
       {showDeployment && <DeploymentPanel account={wallet.address} />}
       <section className="steps" id="how-it-works"><div className="section-intro"><p className="eyebrow">How it works</p><h2>Cross-chain data that users can inspect.</h2></div><div className="step-grid">{steps.map(([number, title, copy]) => <article className="step" key={number}><span className="step-number">{number}</span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
-      <section className="principles"><p>Built for a hackathon demo · Uses testnet only · Never request a seed phrase</p></section>
+      <footer className="site-footer">
+        <div className="footer-main">
+          <div className="footer-intro">
+            <a className="brand footer-brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
+            <p>Portable proof for fairer on-chain lending decisions.</p>
+            <span className="footer-live"><span aria-hidden="true" />Live on testnet</span>
+          </div>
+          <nav className="footer-links" aria-label="Footer navigation">
+            <div>
+              <p>Explore</p>
+              <a href="#how-it-works">How it works</a>
+              <a href="https://github.com/Elvino03/prooflend" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+              <a href="https://dorahacks.io/hackathon/buidl-ctc-2026-fall/detail" target="_blank" rel="noreferrer">BUIDL CTC <span aria-hidden="true">↗</span></a>
+            </div>
+            <div>
+              <p>Verified demo</p>
+              <a href="https://sepolia.etherscan.io/tx/0xd5ba4fa9041a7de72bcbee6ca12ef32c8e188c4ef828564469989a69ad820345" target="_blank" rel="noreferrer">Sepolia request <span aria-hidden="true">↗</span></a>
+              <a href="https://creditcoin-testnet.blockscout.com/tx/0xdec3d335a1d178fa92e05af5818b607669fa8d9de0c1b4fc6d6e2626e5a13096" target="_blank" rel="noreferrer">Creditcoin proof <span aria-hidden="true">↗</span></a>
+            </div>
+          </nav>
+        </div>
+        <div className="footer-bottom">
+          <p>Built solo for BUIDL CTC 2026</p>
+          <p>Testnet only <span aria-hidden="true">·</span> Never share your seed phrase</p>
+        </div>
+      </footer>
     </main>
   )
 }
