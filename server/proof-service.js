@@ -43,7 +43,15 @@ export async function getProofStatus(txHash) {
   const builder = new proofProvider.service.ProofBuilder(SOURCE_CHAIN_KEY, PROOF_BUILDER_URL)
   const result = await builder.getProof(txHash)
   if (!result.success || !result.data) {
-    return { status: 502, body: { error: result.error || 'The proof builder returned no proof.' } }
+    return {
+      status: 202,
+      body: {
+        pending: true,
+        reason: 'proof-builder',
+        message: result.error || 'The attested proof is still entering the builder cache.',
+        targetHeight: transaction.blockNumber.toString(),
+      },
+    }
   }
   return { status: 200, body: { data: jsonSafe(result.data) } }
 }

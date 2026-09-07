@@ -228,17 +228,26 @@ function App() {
     try {
       setFlow((current) => ({ ...current, stage: 'building-proof', error: '' }))
       for (let attempt = 0; attempt < 80; attempt += 1) {
-        const response = await fetch(`/api/proof?txHash=${encodeURIComponent(flow.txHash)}`)
-        const result = await response.json()
-        if (!response.ok && response.status !== 202) throw new Error(result.error || 'Proof generation failed.')
-        if (result.data) {
-          setFlow((current) => ({ ...current, stage: 'proof-ready', proof: result.data, progress: '' }))
-          return
+        try {
+          const response = await fetch(`/api/proof?txHash=${encodeURIComponent(flow.txHash)}`)
+          const result = await response.json()
+          if ([400, 404].includes(response.status)) throw new Error(result.error || 'The eligibility transaction could not be used.')
+          if (result.data) {
+            setFlow((current) => ({ ...current, stage: 'proof-ready', proof: result.data, progress: '' }))
+            return
+          }
+          const progress = result.latestHeight && result.targetHeight
+            ? `Attested through ${Number(result.latestHeight).toLocaleString()} · waiting for ${Number(result.targetHeight).toLocaleString()}`
+            : result.reason === 'proof-builder'
+              ? 'Block attested · preparing the transaction proof…'
+              : response.status >= 500
+                ? 'Proof service temporarily unavailable · retrying…'
+                : 'Waiting for the Sepolia transaction to be mined…'
+          setFlow((current) => ({ ...current, progress }))
+        } catch (error) {
+          if (/could not be used|valid Sepolia transaction/i.test(error?.message || '')) throw error
+          setFlow((current) => ({ ...current, progress: 'Temporary network issue · retrying automatically…' }))
         }
-        const progress = result.targetHeight
-          ? `Attested through ${Number(result.latestHeight).toLocaleString()} · waiting for ${Number(result.targetHeight).toLocaleString()}`
-          : 'Waiting for the Sepolia transaction to be mined…'
-        setFlow((current) => ({ ...current, progress }))
         await new Promise((resolve) => setTimeout(resolve, 15_000))
       }
       throw new Error('Attestation did not arrive within 20 minutes. You can safely try again.')
