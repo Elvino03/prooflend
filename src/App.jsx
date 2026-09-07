@@ -158,14 +158,20 @@ function App() {
 
   return (
     <main>
-      <nav className="nav" aria-label="Main navigation"><a className="brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a><span className="network-pill">Sepolia → Creditcoin</span></nav>
+      <nav className="nav" aria-label="Main navigation">
+        <a className="brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
+        <div className="nav-actions">
+          <span className="network-pill">Sepolia → Creditcoin</span>
+          <button className="nav-wallet" onClick={connectWallet} disabled={wallet.status === 'connecting'}>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}</button>
+        </div>
+      </nav>
       <section className="hero" id="top">
         <p className="eyebrow">Cross-chain lending, made verifiable</p><h1>Prove your on-chain activity. Unlock a fairer loan decision.</h1>
         <p className="hero-copy">ProofLend uses Attestcoin Protocol to verify a signal from another chain, then makes an explainable lending decision on Creditcoin.</p>
-        <div className="hero-actions"><button className="primary-button" onClick={connectWallet} disabled={wallet.status === 'connecting'}>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect Rabby wallet'}</button><a className="text-button" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a></div>
+        <div className="hero-actions"><a className="primary-button" href="#verify">Try ProofLend <span aria-hidden="true">↓</span></a><a className="text-button" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a></div>
         {wallet.status === 'connected' && <p className="connection-note" role="status">Rabby connected. Transactions always require your approval.</p>}{wallet.status === 'error' && <p className="connection-error" role="alert">{wallet.error}</p>}
       </section>
-      <section className="decision-card" aria-label="Eligibility verification">
+      <section className="decision-card" id="verify" aria-label="Eligibility verification">
         <div className="card-heading"><div><p className="card-label">Eligibility request</p><h2>{flow.stage === 'verified' ? 'Activity verified' : 'Verify your signal'}</h2></div><span className={`status ${flow.stage === 'verified' ? 'status-success' : 'status-pending'}`}>{status}</span></div>
         <div className="signal-row"><div><p className="signal-label">Cross-chain signal</p><p className="signal-value">ProofLend eligibility request</p></div><span className="signal-chain">Ethereum Sepolia</span></div>
         <div className="signal-row"><div><p className="signal-label">Verification result</p><p className="signal-value">{flow.stage === 'verified' ? 'Eligible · proof recorded' : 'Pending Attestcoin proof'}</p></div><span className="signal-chain">Creditcoin</span></div>
