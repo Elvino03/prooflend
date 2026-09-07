@@ -42,8 +42,16 @@ function PowerIcon() {
   return <svg className="menu-action-icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2.75v6" /><path d="M5.15 5.05a6 6 0 1 0 7.7 0" /></svg>
 }
 
+function WalletIcon({ className = 'menu-action-icon' }) {
+  return <svg className={className} viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5.25A1.75 1.75 0 0 1 4.75 3.5h8.5A1.75 1.75 0 0 1 15 5.25v7.5a1.75 1.75 0 0 1-1.75 1.75h-8.5A1.75 1.75 0 0 1 3 12.75Z" /><path d="M12 7.25h3v3.5h-3a1.75 1.75 0 1 1 0-3.5Z" /></svg>
+}
+
+function ChevronRight() {
+  return <svg className="choice-arrow" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 4 4 4-4 4" /></svg>
+}
+
 function friendlyError(error) {
-  if (error?.code === 4001 || error?.code === 'ACTION_REJECTED') return 'The request was cancelled in Rabby.'
+  if (error?.code === 4001 || error?.code === 'ACTION_REJECTED') return 'The wallet request was cancelled.'
   return error?.shortMessage || error?.reason || error?.message || 'Something went wrong.'
 }
 
@@ -64,15 +72,37 @@ function App() {
   const [networkMenuOpen, setNetworkMenuOpen] = useState(false)
   const [walletMenuOpen, setWalletMenuOpen] = useState(false)
   const [copyStatus, setCopyStatus] = useState('idle')
+  const [walletProviders, setWalletProviders] = useState([])
+  const [selectedWallet, setSelectedWallet] = useState(null)
   const navActionsRef = useRef(null)
   const [flow, setFlow] = useState(() => {
     const txHash = localStorage.getItem('prooflend-source-tx') || ''
     return { stage: txHash ? 'source-confirmed' : 'ready', txHash, proof: null, destinationTx: '', error: '', progress: '' }
   })
   const showDeployment = new URLSearchParams(window.location.search).get('deploy') === '1'
+  const walletProvider = selectedWallet?.provider || window.ethereum
 
   useEffect(() => {
-    const provider = window.ethereum
+    const announceProvider = (event) => {
+      const detail = event.detail
+      if (!detail?.provider?.request || !detail?.info?.uuid || !detail?.info?.name) return
+      const info = {
+        uuid: String(detail.info.uuid),
+        name: String(detail.info.name).slice(0, 50),
+        rdns: String(detail.info.rdns || ''),
+        icon: String(detail.info.icon || '').startsWith('data:image/') ? String(detail.info.icon) : '',
+      }
+      setWalletProviders((current) => current.some((walletOption) => walletOption.info.uuid === info.uuid)
+        ? current
+        : [...current, { info, provider: detail.provider }])
+    }
+    window.addEventListener('eip6963:announceProvider', announceProvider)
+    window.dispatchEvent(new Event('eip6963:requestProvider'))
+    return () => window.removeEventListener('eip6963:announceProvider', announceProvider)
+  }, [])
+
+  useEffect(() => {
+    const provider = walletProvider
     if (!provider) return undefined
     const updateAccount = (accounts) => {
       const disconnectedFromSite = sessionStorage.getItem('prooflend-wallet-disconnected') === '1'
@@ -88,7 +118,7 @@ function App() {
       provider.removeListener?.('accountsChanged', updateAccount)
       provider.removeListener?.('chainChanged', setChainId)
     }
-  }, [])
+  }, [walletProvider])
 
   useEffect(() => {
     const closeMenus = (event) => {
@@ -111,31 +141,34 @@ function App() {
     }
   }, [])
 
-  const connectWallet = async () => {
-    const provider = window.ethereum
+  const connectWallet = async (walletOption = null) => {
+    const provider = walletOption?.provider || walletProvider
     if (!provider) {
-      setWallet({ status: 'error', address: '', error: 'Rabby was not detected. Open this app in the browser where Rabby is installed.' })
+      setWallet({ status: 'error', address: '', error: 'No compatible browser wallet was detected.' })
       return
     }
     try {
+      if (walletOption) setSelectedWallet(walletOption)
+      setWalletMenuOpen(false)
       setWallet({ status: 'connecting', address: '', error: '' })
       sessionStorage.removeItem('prooflend-wallet-disconnected')
       const accounts = await provider.request({ method: 'eth_requestAccounts' })
-      setWallet({ status: 'connected', address: accounts[0], error: '' })
+      setChainId(await provider.request({ method: 'eth_chainId' }))
+      setWallet({ status: 'connected', address: accounts[0], error: '', name: walletOption?.info?.name || 'Browser wallet' })
     } catch (error) {
       setWallet({ status: 'error', address: '', error: friendlyError(error) })
     }
   }
 
   const changeNetwork = async (targetChainId) => {
-    if (!targetChainId || !window.ethereum) return
+    if (!targetChainId || !walletProvider) return
     try {
       setNetworkStatus('switching')
       setNetworkMenuOpen(false)
       setNetworkError('')
       const network = targetChainId === SEPOLIA_ID ? sepoliaNetwork : creditcoinNetwork
-      await switchChain(window.ethereum, targetChainId, network)
-      setChainId(await window.ethereum.request({ method: 'eth_chainId' }))
+      await switchChain(walletProvider, targetChainId, network)
+      setChainId(await walletProvider.request({ method: 'eth_chainId' }))
     } catch (error) {
       setNetworkError(friendlyError(error))
     } finally {
@@ -159,17 +192,24 @@ function App() {
     setWalletMenuOpen(false)
     setWallet({ status: 'idle', address: '', error: '' })
     try {
-      await window.ethereum?.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] })
+      await walletProvider?.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] })
     } catch {
       // Some wallets do not expose permission revocation; local disconnect still succeeds.
     }
   }
 
+  const openWalletPicker = () => {
+    sessionStorage.setItem('prooflend-wallet-disconnected', '1')
+    setWallet({ status: 'idle', address: '', error: '' })
+    setSelectedWallet(null)
+    setWalletMenuOpen(true)
+  }
+
   const requestSignal = async () => {
     try {
       setFlow((current) => ({ ...current, stage: 'requesting', error: '' }))
-      await switchChain(window.ethereum, SEPOLIA_ID)
-      const provider = new BrowserProvider(window.ethereum)
+      await switchChain(walletProvider, SEPOLIA_ID)
+      const provider = new BrowserProvider(walletProvider)
       const signer = await provider.getSigner()
       const signal = new Contract(deployments.sepolia.signalContract, compiled.signal.abi, signer)
       const commitment = keccak256(toUtf8Bytes(`prooflend:${wallet.address.toLowerCase()}`))
@@ -210,8 +250,8 @@ function App() {
   const submitProof = async () => {
     try {
       setFlow((current) => ({ ...current, stage: 'submitting-proof', error: '' }))
-      await switchChain(window.ethereum, CREDITCOIN_ID, creditcoinNetwork)
-      const provider = new BrowserProvider(window.ethereum)
+      await switchChain(walletProvider, CREDITCOIN_ID, creditcoinNetwork)
+      const provider = new BrowserProvider(walletProvider)
       const signer = await provider.getSigner()
       const eligibility = new Contract(deployments.creditcoinTestnet.eligibilityContract, compiled.eligibility.abi, signer)
       const proof = flow.proof
@@ -250,7 +290,7 @@ function App() {
   const isBusy = ['requesting', 'mining-source', 'building-proof', 'submitting-proof', 'mining-proof'].includes(flow.stage)
   const status = flow.stage === 'verified' ? 'Verified' : flow.stage === 'proof-ready' ? 'Proof ready' : flow.txHash ? 'In progress' : 'Awaiting proof'
   const action = !wallet.address
-    ? { label: 'Connect Rabby to begin', run: connectWallet }
+    ? { label: 'Connect wallet to begin', run: () => { setWalletMenuOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }) } }
     : flow.stage === 'source-confirmed'
       ? { label: 'Build Attestcoin proof', run: generateProof }
       : flow.stage === 'proof-ready'
@@ -277,11 +317,18 @@ function App() {
             </div>}
           </div>
           <div className="nav-menu-wrap">
-            <button className={`nav-wallet ${wallet.status === 'connected' ? 'nav-wallet-connected' : ''}`} onClick={wallet.status === 'connected' ? () => { setWalletMenuOpen((open) => !open); setNetworkMenuOpen(false) } : connectWallet} disabled={wallet.status === 'connecting'} aria-haspopup={wallet.status === 'connected' ? 'menu' : undefined} aria-expanded={wallet.status === 'connected' ? walletMenuOpen : undefined}><span className="wallet-symbol" aria-hidden="true">◇</span>{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}{wallet.status === 'connected' && <ChevronDown open={walletMenuOpen} />}</button>
+            <button className={`nav-wallet ${wallet.status === 'connected' ? 'nav-wallet-connected' : ''}`} onClick={() => { setWalletMenuOpen((open) => !open); setNetworkMenuOpen(false) }} disabled={wallet.status === 'connecting'} aria-haspopup="menu" aria-expanded={walletMenuOpen}>{selectedWallet?.info?.icon ? <img className="wallet-button-icon" src={selectedWallet.info.icon} alt="" /> : <WalletIcon className="wallet-button-generic" />}{wallet.status === 'connected' ? shortAddress : wallet.status === 'connecting' ? 'Connecting…' : 'Connect wallet'}<ChevronDown open={walletMenuOpen} /></button>
+            {walletMenuOpen && !wallet.address && <div className="nav-popover wallet-picker" role="menu" aria-label="Choose a wallet">
+              <p className="popover-label">Choose a wallet</p>
+              {walletProviders.map((walletOption) => <button className="wallet-choice" key={walletOption.info.uuid} onClick={() => connectWallet(walletOption)} role="menuitem">{walletOption.info.icon ? <img src={walletOption.info.icon} alt="" /> : <span className="wallet-choice-fallback"><WalletIcon /></span>}<span><strong>{walletOption.info.name}</strong><small>Browser extension</small></span><ChevronRight /></button>)}
+              {walletProviders.length === 0 && window.ethereum && <button className="wallet-choice" onClick={() => connectWallet()} role="menuitem"><span className="wallet-choice-fallback"><WalletIcon /></span><span><strong>Browser wallet</strong><small>Injected EVM wallet</small></span><ChevronRight /></button>}
+              {walletProviders.length === 0 && !window.ethereum && <p className="wallet-empty">Install an EVM browser wallet to continue.</p>}
+            </div>}
             {walletMenuOpen && wallet.address && <div className="nav-popover wallet-menu" role="menu" aria-label="Wallet options">
               <p className="popover-label">Connected wallet</p>
               <p className="wallet-full-address">{wallet.address}</p>
               <button className="wallet-menu-action" onClick={copyAddress} role="menuitem"><CopyIcon />{copyStatus === 'copied' ? 'Address copied' : copyStatus === 'error' ? 'Copy failed' : 'Copy address'}<span className="action-status">{copyStatus === 'copied' ? '✓' : ''}</span></button>
+              <button className="wallet-menu-action" onClick={openWalletPicker} role="menuitem"><WalletIcon />Change wallet</button>
               <button className="wallet-menu-action wallet-disconnect" onClick={disconnectWallet} role="menuitem"><PowerIcon />Disconnect</button>
             </div>}
           </div>
@@ -291,7 +338,7 @@ function App() {
         <p className="eyebrow">Cross-chain lending, made verifiable</p><h1>Prove your on-chain activity. Unlock a fairer loan decision.</h1>
         <p className="hero-copy">ProofLend uses Attestcoin Protocol to verify a signal from another chain, then makes an explainable lending decision on Creditcoin.</p>
         <div className="hero-actions"><a className="primary-button" href="#verify">Try ProofLend <span aria-hidden="true">↓</span></a><a className="text-button" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a></div>
-        {wallet.status === 'connected' && <p className="connection-note" role="status">Rabby connected. Transactions always require your approval.</p>}{wallet.status === 'error' && <p className="connection-error" role="alert">{wallet.error}</p>}{networkError && <p className="connection-error" role="alert">{networkError}</p>}
+        {wallet.status === 'connected' && <p className="connection-note" role="status">{wallet.name || 'Wallet'} connected. Transactions always require your approval.</p>}{wallet.status === 'error' && <p className="connection-error" role="alert">{wallet.error}</p>}{networkError && <p className="connection-error" role="alert">{networkError}</p>}
       </section>
       <section className="decision-card" id="verify" aria-label="Eligibility verification">
         <div className="card-heading"><div><p className="card-label">Eligibility request</p><h2>{flow.stage === 'verified' ? 'Activity verified' : 'Verify your signal'}</h2></div><span className={`status ${flow.stage === 'verified' ? 'status-success' : 'status-pending'}`}>{status}</span></div>
