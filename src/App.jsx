@@ -311,7 +311,7 @@ function App() {
   return (
     <main>
       <nav className="nav" aria-label="Main navigation">
-        <a className="brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
+        <a className="brand" href="#top" aria-label="ProofLend home"><img className="brand-mark" src="/favicon.svg" alt="" />ProofLend</a>
         <div className="nav-actions" ref={navActionsRef}>
           <div className="nav-menu-wrap">
             <button className={`network-pill current-network ${chainId && !supportedNetwork ? 'network-warning' : ''}`} onClick={() => { setNetworkMenuOpen((open) => !open); setWalletMenuOpen(false) }} disabled={!chainId || networkStatus === 'switching'} aria-haspopup="menu" aria-expanded={networkMenuOpen}>
@@ -364,7 +364,7 @@ function App() {
       <footer className="site-footer">
         <div className="footer-main">
           <div className="footer-intro">
-            <a className="brand footer-brand" href="#top" aria-label="ProofLend home"><span className="brand-mark">P</span>ProofLend</a>
+            <a className="brand footer-brand" href="#top" aria-label="ProofLend home"><img className="brand-mark" src="/favicon.svg" alt="" />ProofLend</a>
             <p>Portable proof for fairer on-chain lending decisions.</p>
             <span className="footer-live"><span aria-hidden="true" />Live on testnet</span>
           </div>
