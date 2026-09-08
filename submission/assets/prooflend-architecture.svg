@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">ProofLend cross-chain verification architecture</title>
+  <desc id="desc">A user creates an eligibility signal on Ethereum Sepolia. Attestcoin attests the block and supplies proof material. Creditcoin verifies the proof and records eligibility.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17372e"/>
+      <stop offset="1" stop-color="#0d1f1a"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#06100d" flood-opacity="0.45"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d8fe60"/>
+    </marker>
+    <style>
+      .title{font:700 52px Inter,Segoe UI,sans-serif;fill:#f3f7ef;letter-spacing:-1.5px}
+      .subtitle{font:400 22px Inter,Segoe UI,sans-serif;fill:#9fb5a5}
+      .lane{font:700 16px Inter,Segoe UI,sans-serif;fill:#d8fe60;letter-spacing:2px}
+      .node-title{font:700 22px Inter,Segoe UI,sans-serif;fill:#f1f6ed}
+      .node-copy{font:400 16px Inter,Segoe UI,sans-serif;fill:#a9baac}
+      .step{font:700 15px Inter,Segoe UI,sans-serif;fill:#14251f}
+      .edge{fill:none;stroke:#d8fe60;stroke-width:3;marker-end:url(#arrow)}
+      .edge-muted{fill:none;stroke:#7e9a86;stroke-width:2.5;stroke-dasharray:8 8;marker-end:url(#arrow)}
+      .edge-label{font:600 15px Inter,Segoe UI,sans-serif;fill:#cad9c8}
+      .chip{fill:#d8fe60}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1430" cy="80" r="260" fill="#d8fe60" opacity="0.035"/>
+  <circle cx="150" cy="850" r="310" fill="#76a88c" opacity="0.035"/>
+
+  <text x="90" y="92" class="title">ProofLend cross-chain verification</text>
+  <text x="90" y="132" class="subtitle">The proof service gathers data. Creditcoin decides whether the proof can change state.</text>
+
+  <text x="90" y="215" class="lane">USER</text>
+  <text x="390" y="215" class="lane">SOURCE CHAIN</text>
+  <text x="775" y="215" class="lane">PROOF LAYER</text>
+  <text x="1165" y="215" class="lane">EXECUTION CHAIN</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="268" width="230" height="170" rx="22" fill="#1d4136" stroke="#436355"/>
+    <circle cx="114" cy="312" r="20" class="chip"/>
+    <text x="108" y="318" class="step">1</text>
+    <text x="102" y="365" class="node-title">User wallet</text>
+    <text x="102" y="398" class="node-copy">Signs both testnet</text>
+    <text x="102" y="421" class="node-copy">transactions</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="375" y="268" width="300" height="170" rx="22" fill="#1d4136" stroke="#436355"/>
+    <circle cx="419" cy="312" r="20" class="chip"/>
+    <text x="413" y="318" class="step">2</text>
+    <text x="407" y="365" class="node-title">ProofLendSignal</text>
+    <text x="407" y="398" class="node-copy">Ethereum Sepolia</text>
+    <text x="407" y="421" class="node-copy">emits EligibilityRequested</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="760" y="268" width="310" height="170" rx="22" fill="#1d4136" stroke="#436355"/>
+    <circle cx="804" cy="312" r="20" class="chip"/>
+    <text x="798" y="318" class="step">3</text>
+    <text x="792" y="365" class="node-title">Attestcoin proof</text>
+    <text x="792" y="398" class="node-copy">Attested block, transaction bytes,</text>
+    <text x="792" y="421" class="node-copy">Merkle + continuity proofs</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1155" y="268" width="365" height="170" rx="22" fill="#1d4136" stroke="#d8fe60" stroke-width="2"/>
+    <circle cx="1199" cy="312" r="20" class="chip"/>
+    <text x="1193" y="318" class="step">4</text>
+    <text x="1187" y="365" class="node-title">ProofLendEligibility</text>
+    <text x="1187" y="398" class="node-copy">Creditcoin Testnet</text>
+    <text x="1187" y="421" class="node-copy">verifies, decodes, records</text>
+  </g>
+
+  <path d="M300 353 H365" class="edge"/>
+  <text x="312" y="337" class="edge-label">request</text>
+  <path d="M675 353 H750" class="edge-muted"/>
+  <text x="687" y="337" class="edge-label">event</text>
+  <path d="M1070 353 H1145" class="edge"/>
+  <text x="1077" y="337" class="edge-label">proof</text>
+
+  <g filter="url(#shadow)">
+    <rect x="375" y="565" width="300" height="145" rx="22" fill="#142f27" stroke="#365647"/>
+    <text x="407" y="616" class="node-title">Attestcoin attestors</text>
+    <text x="407" y="650" class="node-copy">Commit Sepolia block state</text>
+    <text x="407" y="674" class="node-copy">to Creditcoin consensus</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="760" y="535" width="310" height="205" rx="22" fill="#142f27" stroke="#365647"/>
+    <text x="792" y="584" class="node-title">Serverless proof API</text>
+    <text x="792" y="618" class="node-copy">Official @gluwa/usc-sdk</text>
+    <text x="792" y="642" class="node-copy">Checks attested height</text>
+    <text x="792" y="666" class="node-copy">Requests Proof Builder data</text>
+    <rect x="792" y="688" width="222" height="30" rx="15" fill="#d8fe60" opacity="0.12"/>
+    <text x="810" y="709" class="edge-label">never signs transactions</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1155" y="535" width="365" height="205" rx="22" fill="#142f27" stroke="#365647"/>
+    <text x="1187" y="584" class="node-title">On-chain checks</text>
+    <text x="1187" y="618" class="node-copy">Native verifier at 0x0FD2</text>
+    <text x="1187" y="642" class="node-copy">Approved source + event</text>
+    <text x="1187" y="666" class="node-copy">EvmV1Decoder extraction</text>
+    <text x="1187" y="690" class="node-copy">Query replay protection</text>
+  </g>
+
+  <path d="M675 638 H750" class="edge-muted"/>
+  <text x="686" y="620" class="edge-label">attestation</text>
+  <path d="M1070 638 H1145" class="edge"/>
+  <text x="1077" y="620" class="edge-label">proof input</text>
+  <path d="M1338 535 V448" class="edge"/>
+
+  <rect x="90" y="806" width="1420" height="2" fill="#355246"/>
+  <text x="90" y="850" class="subtitle">Result: verifiedRequestId[applicant] changes only after the proof and event checks succeed.</text>
+</svg>

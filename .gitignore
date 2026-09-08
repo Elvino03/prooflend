@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.codex-build/
+.codex-finalizer/
 
 # Editor directories and files
 .vscode/*
