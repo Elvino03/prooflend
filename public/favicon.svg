@@ -2,8 +2,7 @@
   <title id="title">ProofLend</title>
   <rect width="64" height="64" rx="18" fill="#d8fe60"/>
   <g fill="none" stroke="#14251f" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M27 38.5 23.5 42a10 10 0 0 1-14-14.2l8-8a10 10 0 0 1 14.1 0 9.8 9.8 0 0 1 2.7 5"/>
-    <path d="m37 25.5 3.5-3.5a10 10 0 0 1 14 14.2l-8 8a10 10 0 0 1-14.1 0 9.8 9.8 0 0 1-2.7-5"/>
-    <path d="m23.5 40.5 17-17"/>
+    <path d="M17 15h10c10 0 17 5 17 12 0 5-3 8-8 8H24v14h26"/>
+    <path d="M15 25h12"/>
   </g>
 </svg>
